@@ -360,12 +360,44 @@ lucide.createIcons();
 
 const TAXA_ENTREGA = 6.00;
 const DEFAULT_PIZZA_IMAGE = 'assets/pizza-card.png';
+const CART_STORAGE_KEY = 'mamma-mia-cart';
 let MENU = [];
-let cart = {};
+let cart = loadCart();
 let activeCat = 'todas';
 
 const grid = document.getElementById('menuGrid');
 const fmt = v => v.toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
+
+function loadCart(){
+  try{
+    const saved = JSON.parse(localStorage.getItem(CART_STORAGE_KEY) || '{}');
+    return Object.fromEntries(
+      Object.entries(saved)
+        .map(([id, qty]) => [id, Number(qty)])
+        .filter(([, qty]) => Number.isInteger(qty) && qty > 0)
+    );
+  }catch{
+    return {};
+  }
+}
+
+function saveCart(){
+  localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
+}
+
+function clearCart(){
+  cart = {};
+  localStorage.removeItem(CART_STORAGE_KEY);
+  renderCart();
+}
+
+function syncCartWithMenu(){
+  const validIds = new Set(MENU.map(item => String(item.id)));
+  cart = Object.fromEntries(
+    Object.entries(cart).filter(([id]) => validIds.has(String(id)))
+  );
+  saveCart();
+}
 
 async function carregarCardapio(){
   const { data, error } = await supabaseClient
@@ -379,7 +411,9 @@ async function carregarCardapio(){
     return;
   }
   MENU = data;
+  syncCartWithMenu();
   renderMenu();
+  renderCart();
 }
 
 function renderMenu(){
@@ -434,6 +468,7 @@ document.querySelectorAll('.tab').forEach(tab => {
 
 function addToCart(id, imageEl){
   cart[id] = (cart[id] || 0) + 1;
+  saveCart();
   renderCart();
   animateToCart(imageEl || document.querySelector(`.pizza-card[data-id="${id}"] .swatch img`));
   showToast(`${MENU.find(p=>p.id===id).nome} adicionada ao carrinho`);
@@ -442,6 +477,7 @@ function changeQty(id, delta){
   if(!cart[id]) return;
   cart[id] += delta;
   if(cart[id] <= 0) delete cart[id];
+  saveCart();
   renderCart();
 }
 
@@ -699,8 +735,7 @@ submitBtn.addEventListener('click', async () => {
     `Obrigado, ${nome.split(' ')[0]}! Recebemos seu pedido para ${enderecoCompleto}. Tempo estimado de entrega: 30–40 minutos.`;
   overlay.classList.add('show');
 
-  cart = {};
-  renderCart();
+  clearCart();
   orderForm.reset();
   lastCepLoaded = '';
   setCepStatus('');
