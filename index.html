@@ -673,6 +673,7 @@ submitBtn.addEventListener('click', async () => {
     .single();
 
   if(errPedido){
+    console.error('Erro ao criar pedido:', errPedido);
     showToast('Erro ao enviar pedido: ' + errPedido.message);
     submitBtn.disabled = false;
     submitBtn.innerHTML = '<i data-lucide="check-circle-2" class="icon"></i> Confirmar pedido';
@@ -684,7 +685,15 @@ submitBtn.addEventListener('click', async () => {
     const p = MENU.find(m => m.id === id);
     return { pedido_id: pedido.id, pizza_id: p.id, nome_pizza: p.nome, quantidade: cart[id], preco_unitario: p.preco };
   });
-  await supabaseClient.from('itens_pedido').insert(itens);
+  const { error: errItens } = await supabaseClient.from('itens_pedido').insert(itens);
+  if(errItens){
+    console.error('Erro ao criar itens do pedido:', errItens);
+    showToast('Pedido criado, mas os itens falharam: ' + errItens.message);
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = '<i data-lucide="check-circle-2" class="icon"></i> Confirmar pedido';
+    lucide.createIcons();
+    return;
+  }
 
   document.getElementById('modalMsg').textContent =
     `Obrigado, ${nome.split(' ')[0]}! Recebemos seu pedido para ${enderecoCompleto}. Tempo estimado de entrega: 30–40 minutos.`;
