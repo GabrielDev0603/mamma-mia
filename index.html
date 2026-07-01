@@ -394,6 +394,7 @@ lucide.createIcons();
 const TAXA_ENTREGA = 6.00;
 const DEFAULT_PIZZA_IMAGE = 'assets/pizza-card.png';
 const CART_STORAGE_KEY = 'mamma-mia-cart';
+const ORDERS_STORAGE_KEY = 'mamma-mia-orders';
 let MENU = [];
 let cart = loadCart();
 let activeCat = 'todas';
@@ -430,6 +431,12 @@ function syncCartWithMenu(){
     Object.entries(cart).filter(([id]) => validIds.has(String(id)))
   );
   saveCart();
+}
+
+function saveLocalOrder(order){
+  const orders = JSON.parse(localStorage.getItem(ORDERS_STORAGE_KEY) || '[]');
+  orders.unshift(order);
+  localStorage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(orders));
 }
 
 async function carregarCardapio(){
@@ -694,6 +701,13 @@ function selectedPayment(){
   return document.querySelector('input[name="pagamento"]:checked')?.value || 'dinheiro';
 }
 
+function labelPayment(value){
+  return {
+    dinheiro: 'Dinheiro',
+    maquina_cartao: 'Maquina de cartao'
+  }[value] || value;
+}
+
 function updatePaymentDetails(){
   const isCash = selectedPayment() === 'dinheiro';
   trocoField.classList.toggle('hidden', !isCash);
@@ -744,7 +758,16 @@ submitBtn.addEventListener('click', async () => {
   ids.forEach(id => { subtotal += MENU.find(p=>p.id===id).preco * cart[id]; });
   const total = subtotal + TAXA_ENTREGA;
   const enderecoCompleto = `${endereco}, ${numero} - ${bairro}, ${cidade}/${uf}`;
+  const resumoItens = ids.map(id => {
+    const p = MENU.find(m => m.id === id);
+    return `${cart[id]}x ${p.nome} (${fmt(p.preco * cart[id])})`;
+  }).join('; ');
   const observacoes = [
+    `Pagamento: ${labelPayment(pagamento)}`,
+    `Itens: ${resumoItens}`,
+    `Subtotal: ${fmt(subtotal)}`,
+    `Taxa de entrega: ${fmt(TAXA_ENTREGA)}`,
+    `Total: ${fmt(total)}`,
     obs,
     pagamento === 'dinheiro' && troco ? `Troco para ${troco}` : ''
   ].filter(Boolean).join(' | ');
@@ -753,38 +776,22 @@ submitBtn.addEventListener('click', async () => {
   submitBtn.innerHTML = '<i data-lucide="loader-2" class="icon"></i> Enviando...';
   lucide.createIcons();
 
-  const pedidoId = crypto.randomUUID();
-  const { error: errPedido } = await supabaseClient
-    .from('pedidos')
-    .insert({
-      id: pedidoId,
-      nome_cliente: nome, telefone, endereco: enderecoCompleto, complemento, cep,
-      observacoes, forma_pagamento: pagamento,
-      subtotal, taxa_entrega: TAXA_ENTREGA, total, status: 'recebido'
-    });
-
-  if(errPedido){
-    console.error('Erro ao criar pedido:', errPedido);
-    showToast('Erro ao enviar pedido: ' + errPedido.message);
-    submitBtn.disabled = false;
-    submitBtn.innerHTML = '<i data-lucide="check-circle-2" class="icon"></i> Confirmar pedido';
-    lucide.createIcons();
-    return;
-  }
-
-  const itens = ids.map(id => {
-    const p = MENU.find(m => m.id === id);
-    return { pedido_id: pedidoId, pizza_id: p.id, nome_pizza: p.nome, quantidade: cart[id], preco_unitario: p.preco };
-  });
-  const { error: errItens } = await supabaseClient.from('itens_pedido').insert(itens);
-  if(errItens){
-    console.error('Erro ao criar itens do pedido:', errItens);
-    showToast('Pedido criado, mas os itens falharam: ' + errItens.message);
-    submitBtn.disabled = false;
-    submitBtn.innerHTML = '<i data-lucide="check-circle-2" class="icon"></i> Confirmar pedido';
-    lucide.createIcons();
-    return;
-  }
+  const pedido = {
+    id: crypto.randomUUID(),
+    nome_cliente: nome,
+    telefone,
+    endereco: enderecoCompleto,
+    complemento,
+    cep,
+    observacoes,
+    forma_pagamento: pagamento,
+    subtotal,
+    taxa_entrega: TAXA_ENTREGA,
+    total,
+    status: 'recebido',
+    created_at: new Date().toISOString()
+  };
+  saveLocalOrder(pedido);
 
   document.getElementById('modalMsg').textContent =
     `Obrigado, ${nome.split(' ')[0]}! Recebemos seu pedido para ${enderecoCompleto}. Tempo estimado de entrega: 30–40 minutos.`;

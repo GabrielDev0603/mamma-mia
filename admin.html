@@ -269,6 +269,7 @@ if(window.lucide) lucide.createIcons();
 
 const fmt = v => Number(v || 0).toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
 const DEFAULT_PIZZA_IMAGE = 'assets/pizza-card.png';
+const ORDERS_STORAGE_KEY = 'mamma-mia-orders';
 const statusFluxo = ['recebido', 'preparando', 'saiu', 'entregue'];
 let ITENS = [];
 let PEDIDOS = [];
@@ -283,6 +284,16 @@ const toast = document.getElementById('toast');
 const ordersGrid = document.getElementById('ordersGrid');
 
 function iconize(){ if(window.lucide) lucide.createIcons(); }
+function loadLocalOrders(){
+  try{
+    return JSON.parse(localStorage.getItem(ORDERS_STORAGE_KEY) || '[]');
+  }catch{
+    return [];
+  }
+}
+function saveLocalOrders(orders){
+  localStorage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(orders));
+}
 function escapeHtml(str=''){
   return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
 }
@@ -311,6 +322,12 @@ function labelPagamento(valor){
     dinheiro: 'Dinheiro',
     maquina_cartao: 'Maquina de cartao'
   }[valor] || valor || '-';
+}
+function totalPedido(p){
+  if(Number(p.total || 0)) return Number(p.total);
+  const match = String(p.observacoes || '').match(/Total:\s*R\$\s*([\d.]+,\d{2})/i);
+  if(!match) return 0;
+  return Number(match[1].replace(/\./g, '').replace(',', '.')) || 0;
 }
 
 function mostrarErroAcesso(mensagem){
@@ -370,25 +387,8 @@ async function carregarDashboard(){
 
 async function carregarPedidos(){
   ordersGrid.innerHTML = '<div class="empty">Carregando pedidos...</div>';
-  const [{ data: pedidos, error: errPedidos }, { data: itens, error: errItens }] = await Promise.all([
-    supabaseClient.from('pedidos').select('*').order('created_at', { ascending:false }),
-    supabaseClient.from('itens_pedido').select('*')
-  ]);
-
-  if(errPedidos){
-    ordersGrid.innerHTML = `<div class="empty">Erro ao carregar pedidos: ${escapeHtml(errPedidos.message)}</div>`;
-    return;
-  }
-  if(errItens){
-    ordersGrid.innerHTML = `<div class="empty">Pedidos carregados, mas os itens falharam: ${escapeHtml(errItens.message)}</div>`;
-    PEDIDOS = pedidos || [];
-    ITENS_PEDIDO = [];
-    atualizarStats();
-    return;
-  }
-
-  PEDIDOS = pedidos || [];
-  ITENS_PEDIDO = itens || [];
+  PEDIDOS = loadLocalOrders();
+  ITENS_PEDIDO = [];
   atualizarStats();
   renderPedidos();
 }
@@ -437,9 +437,9 @@ function renderPedidos(){
               <span><strong>${Number(i.quantidade || 1)}x</strong> ${escapeHtml(i.nome_pizza || 'Item')}</span>
               <span>${fmt(Number(i.preco_unitario || 0) * Number(i.quantidade || 1))}</span>
             </div>
-          `).join('') : '<div class="order-item"><span>Itens nao encontrados</span></div>'}
+          `).join('') : '<div class="order-item"><span>Itens registrados nas observacoes</span></div>'}
         </div>
-        <div class="order-total"><span>Total</span><span>${fmt(p.total || 0)}</span></div>
+        <div class="order-total"><span>Total</span><span>${fmt(totalPedido(p))}</span></div>
         <div class="order-actions">
           ${next ? `<button class="btn-green btn-compact" onclick="alterarStatusPedido('${p.id}','${next}')">${labelStatus(next)}</button>` : ''}
           ${status !== 'cancelado' && status !== 'entregue' ? `<button class="btn-danger btn-compact" onclick="alterarStatusPedido('${p.id}','cancelado')">Cancelar</button>` : ''}
@@ -456,11 +456,13 @@ function proximoStatus(status){
 }
 
 async function alterarStatusPedido(id, status){
-  const { error } = await supabaseClient.from('pedidos').update({ status }).eq('id', id);
-  if(error){
-    showToast('Erro ao atualizar pedido: ' + error.message);
+  const index = PEDIDOS.findIndex(p => String(p.id) === String(id));
+  if(index < 0){
+    showToast('Pedido nao encontrado');
     return;
   }
+  PEDIDOS[index].status = status;
+  saveLocalOrders(PEDIDOS);
   showToast('Pedido atualizado!');
   carregarPedidos();
 }
@@ -486,7 +488,7 @@ function atualizarStats(){
   const abertos = PEDIDOS.filter(p => !['entregue','cancelado'].includes(normalizarStatus(p.status))).length;
   const faturamento = hoje
     .filter(p => normalizarStatus(p.status) !== 'cancelado')
-    .reduce((acc,p)=>acc + Number(p.total || 0),0);
+    .reduce((acc,p)=>acc + totalPedido(p),0);
   document.getElementById('stPedidosHoje').textContent = hoje.length;
   document.getElementById('stAbertos').textContent = abertos;
   document.getElementById('stFaturamento').textContent = fmt(faturamento);
