@@ -305,6 +305,16 @@ function labelStatus(status){
 function labelCat(cat){
   return {classicas:'Classicas', especiais:'Especiais', doces:'Doces'}[cat] || cat;
 }
+function labelPagamento(valor){
+  return {
+    pix: 'Pix',
+    dinheiro: 'Dinheiro',
+    debito: 'Debito',
+    credito: 'Credito',
+    vale_refeicao: 'Vale-refeicao',
+    online: 'Online'
+  }[valor] || valor || '-';
+}
 
 function mostrarErroAcesso(mensagem){
   gate.innerHTML = `
@@ -421,7 +431,7 @@ function renderPedidos(){
           <div><b>Telefone:</b> ${escapeHtml(p.telefone || '-')}</div>
           <div><b>Entrega:</b> ${escapeHtml(p.endereco || '-')}</div>
           ${p.complemento ? `<div><b>Complemento:</b> ${escapeHtml(p.complemento)}</div>` : ''}
-          <div><b>Pagamento:</b> ${escapeHtml(p.forma_pagamento || '-')}</div>
+          <div><b>Pagamento:</b> ${escapeHtml(labelPagamento(p.forma_pagamento))}</div>
           ${p.observacoes ? `<div><b>Obs:</b> ${escapeHtml(p.observacoes)}</div>` : ''}
         </div>
         <div class="order-items">

@@ -78,6 +78,14 @@ begin
   end if;
 end $$;
 
+alter table public.pedidos drop constraint if exists pedidos_forma_pagamento_check;
+alter table public.pedidos
+  add constraint pedidos_forma_pagamento_check
+  check (
+    forma_pagamento is null
+    or forma_pagamento in ('pix', 'dinheiro', 'debito', 'credito', 'vale_refeicao', 'online')
+  );
+
 -- RLS: publico pode ver cardapio disponivel e inserir pedidos.
 -- Usuario autenticado pode gerenciar cardapio e pedidos pelo admin.
 alter table public.cardapio enable row level security;
