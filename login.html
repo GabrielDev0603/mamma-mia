@@ -57,7 +57,8 @@ button:disabled{opacity:.6;cursor:not-allowed;transform:none}
 .msg{margin-top:15px;font-weight:800;font-size:.9rem;min-height:22px}
 .msg.error{color:var(--molho)}
 .msg.ok{color:var(--basilico)}
-.small{font-size:.84rem;margin:18px 0 0;color:#7d6655;text-align:center}
+.forgot{display:block;margin:18px 0 0;text-align:center;color:var(--molho);font-size:.88rem;font-weight:900;text-decoration:none}
+.forgot:hover{text-decoration:underline}
 .icon{width:18px;height:18px;stroke-width:2.3}
 </style>
 </head>
@@ -81,7 +82,7 @@ button:disabled{opacity:.6;cursor:not-allowed;transform:none}
       <div id="msg" class="msg"></div>
     </form>
 
-    <p class="small">Crie esse usuário em Authentication → Users no painel do Supabase.</p>
+    <a href="#" class="forgot" id="forgotPassword">Esqueci minha senha</a>
   </main>
 
 <script src="supabase-config.js"></script>
@@ -91,6 +92,7 @@ lucide.createIcons();
 const form = document.getElementById('loginForm');
 const btn = document.getElementById('btn');
 const msg = document.getElementById('msg');
+const forgotPassword = document.getElementById('forgotPassword');
 
 async function jaLogado(){
   const { data } = await supabaseClient.auth.getSession();
@@ -123,6 +125,30 @@ form.addEventListener('submit', async (e) => {
   msg.textContent = 'Entrou! Redirecionando...';
   msg.className = 'msg ok';
   location.href = 'admin.html';
+});
+
+forgotPassword.addEventListener('click', async (e) => {
+  e.preventDefault();
+  msg.textContent = '';
+  msg.className = 'msg';
+
+  const email = document.getElementById('email').value.trim();
+  if(!email){
+    msg.textContent = 'Informe seu e-mail para recuperar a senha.';
+    msg.className = 'msg error';
+    document.getElementById('email').focus();
+    return;
+  }
+
+  const { error } = await supabaseClient.auth.resetPasswordForEmail(email);
+  if(error){
+    msg.textContent = 'Nao foi possivel enviar a recuperacao. Confira o e-mail.';
+    msg.className = 'msg error';
+    return;
+  }
+
+  msg.textContent = 'Enviamos as instrucoes de recuperacao para seu e-mail.';
+  msg.className = 'msg ok';
 });
 </script>
 </body>
