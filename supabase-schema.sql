@@ -83,7 +83,25 @@ alter table public.pedidos
   add constraint pedidos_forma_pagamento_check
   check (
     forma_pagamento is null
-    or forma_pagamento in ('pix', 'dinheiro', 'debito', 'credito', 'vale_refeicao', 'online')
+    or forma_pagamento in (
+      'pix',
+      'dinheiro',
+      'debito',
+      'credito',
+      'vale_refeicao',
+      'online',
+      'Pix',
+      'Dinheiro',
+      'Debito',
+      'Credito',
+      'Vale-refeicao',
+      'Pagamento online',
+      'Cartao de debito',
+      'Cartao de credito',
+      'Cartão de débito',
+      'Cartão de crédito',
+      'Vale-refeição'
+    )
   );
 
 -- RLS: publico pode ver cardapio disponivel e inserir pedidos.
