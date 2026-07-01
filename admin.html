@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin - Mamma Mia Delivery</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600;800&family=DM+Sans:wght@400;500;700;900&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+:root{
+  --crosta:#2b1810; --molho:#c1391f; --molho-dark:#9c2c16;
+  --basilico:#3f6b3a; --basilico-dark:#2b4a27;
+  --mozzarela:#fff8ec; --queijo:#f4c542; --creme:#fbf2dd;
+  --texto:#2b1810; --linha:rgba(43,24,16,.13); --muted:#6b5645;
+  --shadow:0 12px 35px rgba(43,24,16,.14);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--creme);color:var(--texto)}
+body::before{content:"";position:fixed;inset:0;background-image:radial-gradient(circle at 1px 1px, rgba(43,24,16,.04) 1px, transparent 0);background-size:22px 22px;pointer-events:none;z-index:-1}
+.icon{width:18px;height:18px;stroke-width:2.3;vertical-align:-4px}
+header{position:sticky;top:0;z-index:5;background:rgba(251,242,221,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--linha);padding:18px 5vw;display:flex;justify-content:space-between;align-items:center;gap:14px}
+.logo{font-family:'Fraunces',serif;font-size:1.35rem;font-weight:800;color:var(--molho);display:flex;gap:10px;align-items:center}
+.logo span{width:10px;height:10px;border-radius:50%;background:var(--basilico);display:inline-block}
+.actions{display:flex;gap:10px;flex-wrap:wrap}
+button,.btn{border:0;border-radius:999px;padding:11px 16px;font:inherit;font-weight:900;cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:.2s ease;text-decoration:none}
+button:hover,.btn:hover{transform:translateY(-2px)}
+button:disabled{opacity:.55;cursor:not-allowed;transform:none}
+.btn-primary{background:var(--molho);color:#fff;box-shadow:0 10px 22px rgba(193,57,31,.22)}
+.btn-dark{background:var(--crosta);color:var(--mozzarela)}
+.btn-light{background:#fff;color:var(--crosta);border:1px solid var(--linha)}
+.btn-green{background:var(--basilico);color:#fff}
+.btn-danger{background:#fff;color:var(--molho);border:1px solid rgba(193,57,31,.25)}
+.btn-compact{padding:8px 11px;border-radius:12px;font-size:.82rem}
+main{padding:38px 5vw 70px}
+.hero{display:flex;justify-content:space-between;gap:20px;align-items:end;margin-bottom:26px}
+.eyebrow{letter-spacing:.16em;text-transform:uppercase;font-weight:900;font-size:.76rem;color:var(--basilico-dark);margin-bottom:10px}
+h1{font-family:'Fraunces',serif;font-size:clamp(2rem,4vw,3.2rem);line-height:1;color:var(--crosta)}
+.lead{color:var(--muted);margin-top:10px;max-width:720px;line-height:1.55}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr));gap:16px;margin:24px 0 28px}
+.stat{background:#fff;border:1px solid var(--linha);border-radius:18px;padding:20px;box-shadow:0 5px 16px rgba(43,24,16,.06)}
+.stat span{font-size:.82rem;color:var(--muted);font-weight:800}
+.stat strong{display:block;font-size:1.9rem;margin-top:6px;color:var(--molho)}
+.view-tabs{display:flex;gap:10px;margin:8px 0 20px;flex-wrap:wrap}
+.view-tab{background:#fff;color:var(--crosta);border:1px solid var(--linha);border-radius:999px;padding:11px 16px;font-weight:900}
+.view-tab.active{background:var(--crosta);color:var(--mozzarela);border-color:var(--crosta)}
+.view-panel{display:none}
+.view-panel.active{display:block}
+.panel{background:rgba(255,248,236,.82);border:1px solid var(--linha);border-radius:22px;box-shadow:var(--shadow);overflow:hidden}
+.toolbar{padding:18px;display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:space-between;border-bottom:1px solid var(--linha)}
+.filters{display:flex;gap:10px;flex-wrap:wrap}
+input,textarea,select{border:1.5px solid var(--linha);border-radius:14px;padding:12px 14px;background:#fff;font:inherit;outline:none}
+input:focus,textarea:focus,select:focus{border-color:var(--molho);box-shadow:0 0 0 4px rgba(193,57,31,.08)}
+.table-wrap{overflow:auto}
+table{width:100%;border-collapse:collapse;min-width:870px;background:#fff}
+th,td{padding:14px 16px;text-align:left;border-bottom:1px solid var(--linha);vertical-align:middle}
+th{font-size:.76rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);background:#fff8ec}
+td{font-size:.94rem}
+.item{display:flex;align-items:center;gap:12px}
+.thumb{width:54px;height:54px;border-radius:14px;background:linear-gradient(135deg,var(--queijo),var(--molho));display:grid;place-items:center;color:#fff;overflow:hidden;flex:0 0 54px}
+.thumb img{width:100%;height:100%;object-fit:cover}
+.name{font-weight:900}
+.desc{font-size:.82rem;color:var(--muted);max-width:330px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.badge{display:inline-flex;border-radius:999px;padding:6px 10px;font-weight:900;font-size:.78rem}
+.badge.on,.badge.entregue{background:rgba(63,107,58,.12);color:var(--basilico-dark)}
+.badge.off,.badge.cancelado{background:rgba(193,57,31,.10);color:var(--molho)}
+.badge.recebido{background:rgba(244,197,66,.22);color:#735300}
+.badge.preparando{background:rgba(193,57,31,.12);color:var(--molho)}
+.badge.saiu{background:rgba(55,96,167,.12);color:#274f91}
+.row-actions,.order-actions{display:flex;gap:8px;flex-wrap:wrap}
+.empty{padding:36px;text-align:center;color:var(--muted)}
+.orders-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px;padding:18px;background:#fff}
+.order-card{border:1px solid var(--linha);border-radius:18px;padding:18px;background:#fff8ec;display:flex;flex-direction:column;gap:14px}
+.order-head{display:flex;justify-content:space-between;gap:14px;align-items:flex-start}
+.order-code{font-weight:900;color:var(--molho);font-size:.82rem}
+.order-client{font-size:1.08rem;font-weight:900;margin-top:3px}
+.order-meta{display:grid;gap:6px;color:var(--muted);font-size:.88rem;line-height:1.35}
+.order-items{display:grid;gap:7px;padding:12px;border-radius:14px;background:#fff;border:1px solid var(--linha)}
+.order-item{display:flex;justify-content:space-between;gap:10px;font-size:.9rem}
+.order-item strong{color:var(--crosta)}
+.order-total{display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--linha);padding-top:12px;font-weight:900}
+.toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(120%);background:var(--crosta);color:var(--mozzarela);border-radius:999px;padding:14px 20px;font-weight:900;box-shadow:var(--shadow);transition:.35s ease;z-index:20}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.overlay{position:fixed;inset:0;background:rgba(43,24,16,.55);backdrop-filter:blur(5px);display:none;align-items:center;justify-content:center;padding:18px;z-index:30}
+.overlay.show{display:flex}
+.modal{width:min(760px,100%);max-height:92vh;overflow:auto;background:#fff;border-radius:24px;padding:26px;box-shadow:var(--shadow)}
+.modal-head{display:flex;justify-content:space-between;align-items:start;gap:14px;margin-bottom:20px}
+.modal h2{font-family:'Fraunces',serif;font-size:1.85rem}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.field.full{grid-column:1/-1}
+label{display:block;font-size:.84rem;font-weight:900;margin-bottom:7px;color:var(--crosta)}
+textarea{width:100%;min-height:95px;resize:vertical}
+.form-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px;flex-wrap:wrap}
+#loadingGate{min-height:100vh;display:grid;place-items:center;padding:24px;color:var(--muted)}
+.gate-card{width:min(460px,100%);background:#fff;border:1px solid var(--linha);border-radius:22px;padding:28px;text-align:center;box-shadow:var(--shadow)}
+.gate-card strong{display:block;color:var(--crosta);font-size:1.15rem;margin-bottom:8px}
+.gate-card p{line-height:1.5}
+.gate-card .btn{margin-top:18px}
+@media(max-width:780px){
+  header,.hero{align-items:flex-start;flex-direction:column}
+  .stats{grid-template-columns:1fr 1fr}
+  .form-grid{grid-template-columns:1fr}
+  .orders-grid{grid-template-columns:1fr}
+}
+@media(max-width:480px){.stats{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div id="loadingGate">
+  <div class="gate-card">
+    <strong>Verificando acesso...</strong>
+    <p>Aguarde enquanto conferimos seu login.</p>
+  </div>
+</div>
+
+<div id="app" style="display:none">
+<header>
+  <div class="logo"><span></span>Mamma Mia Admin</div>
+  <div class="actions">
+    <a class="btn btn-light" href="index.html"><i data-lucide="store" class="icon"></i> Ver site</a>
+    <button class="btn-dark" id="logoutBtn"><i data-lucide="log-out" class="icon"></i> Sair</button>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <div>
+      <div class="eyebrow">Painel administrativo</div>
+      <h1>Operacao da pizzaria</h1>
+      <p class="lead">Acompanhe pedidos recebidos, atualize o preparo e mantenha o cardapio publicado no site. Tudo conectado ao Supabase usado na implantacao.</p>
+    </div>
+    <div class="actions">
+      <button class="btn-light" onclick="carregarDashboard()"><i data-lucide="refresh-cw" class="icon"></i> Atualizar</button>
+      <button class="btn-primary" onclick="abrirModal()"><i data-lucide="plus" class="icon"></i> Novo item</button>
+    </div>
+  </section>
+
+  <section class="stats">
+    <div class="stat"><span>Pedidos hoje</span><strong id="stPedidosHoje">0</strong></div>
+    <div class="stat"><span>Em aberto</span><strong id="stAbertos">0</strong></div>
+    <div class="stat"><span>Faturamento hoje</span><strong id="stFaturamento">R$ 0</strong></div>
+    <div class="stat"><span>Itens no cardapio</span><strong id="stCardapio">0</strong></div>
+  </section>
+
+  <div class="view-tabs">
+    <button class="view-tab active" data-view="pedidos"><i data-lucide="clipboard-list" class="icon"></i> Pedidos</button>
+    <button class="view-tab" data-view="cardapio"><i data-lucide="pizza" class="icon"></i> Cardapio</button>
+  </div>
+
+  <section class="panel view-panel active" id="pedidosPanel">
+    <div class="toolbar">
+      <div class="filters">
+        <input id="buscaPedido" placeholder="Buscar cliente, telefone ou endereco...">
+        <select id="filtroPedidoStatus">
+          <option value="todos">Todos os pedidos</option>
+          <option value="recebido">Recebidos</option>
+          <option value="preparando">Preparando</option>
+          <option value="saiu">Saiu para entrega</option>
+          <option value="entregue">Entregues</option>
+          <option value="cancelado">Cancelados</option>
+        </select>
+      </div>
+      <button class="btn-light" onclick="carregarPedidos()"><i data-lucide="refresh-cw" class="icon"></i> Atualizar pedidos</button>
+    </div>
+    <div class="orders-grid" id="ordersGrid">
+      <div class="empty">Carregando pedidos...</div>
+    </div>
+  </section>
+
+  <section class="panel view-panel" id="cardapioPanel">
+    <div class="toolbar">
+      <div class="filters">
+        <input id="busca" placeholder="Buscar por nome...">
+        <select id="filtroCat">
+          <option value="todas">Todas categorias</option>
+          <option value="classicas">Classicas</option>
+          <option value="especiais">Especiais</option>
+          <option value="doces">Doces</option>
+        </select>
+        <select id="filtroDisp">
+          <option value="todos">Todos status</option>
+          <option value="true">Disponivel</option>
+          <option value="false">Indisponivel</option>
+        </select>
+      </div>
+      <button class="btn-light" onclick="carregarItens()"><i data-lucide="refresh-cw" class="icon"></i> Atualizar cardapio</button>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Item</th>
+            <th>Categoria</th>
+            <th>Preco</th>
+            <th>Status</th>
+            <th>Criado em</th>
+            <th>Acoes</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+      <div id="empty" class="empty" style="display:none">Nenhum item encontrado.</div>
+    </div>
+  </section>
+</main>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <div class="modal-head">
+      <div>
+        <div class="eyebrow">Cardapio</div>
+        <h2 id="modalTitle">Novo item</h2>
+      </div>
+      <button class="btn-light" onclick="fecharModal()"><i data-lucide="x" class="icon"></i></button>
+    </div>
+
+    <form id="itemForm">
+      <input type="hidden" id="itemId">
+      <div class="form-grid">
+        <div class="field">
+          <label for="nome">Nome da pizza</label>
+          <input id="nome" placeholder="Ex: Calabresa" required>
+        </div>
+        <div class="field">
+          <label for="categoria">Categoria</label>
+          <select id="categoria" required>
+            <option value="classicas">Classicas</option>
+            <option value="especiais">Especiais</option>
+            <option value="doces">Doces</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="preco">Preco</label>
+          <input id="preco" type="number" min="0" step="0.01" placeholder="39.90" required>
+        </div>
+        <div class="field">
+          <label for="disponivel">Disponibilidade</label>
+          <select id="disponivel">
+            <option value="true">Disponivel no site</option>
+            <option value="false">Ocultar do site</option>
+          </select>
+        </div>
+        <div class="field full">
+          <label for="imagem_url">URL da imagem</label>
+          <input id="imagem_url" placeholder="https://...">
+        </div>
+        <div class="field full">
+          <label for="descricao">Descricao</label>
+          <textarea id="descricao" placeholder="Ingredientes, detalhes e observacoes"></textarea>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn-light" onclick="fecharModal()">Cancelar</button>
+        <button type="submit" class="btn-green" id="saveBtn"><i data-lucide="save" class="icon"></i> Salvar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="toast" id="toast">Salvo!</div>
+
+<script src="supabase-config.js"></script>
+<script>
+if(window.lucide) lucide.createIcons();
+
+const fmt = v => Number(v || 0).toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
+const DEFAULT_PIZZA_IMAGE = 'assets/pizza-card.png';
+const statusFluxo = ['recebido', 'preparando', 'saiu', 'entregue'];
+let ITENS = [];
+let PEDIDOS = [];
+let ITENS_PEDIDO = [];
+
+const gate = document.getElementById('loadingGate');
+const app = document.getElementById('app');
+const tbody = document.getElementById('tbody');
+const empty = document.getElementById('empty');
+const overlay = document.getElementById('overlay');
+const toast = document.getElementById('toast');
+const ordersGrid = document.getElementById('ordersGrid');
+
+function iconize(){ if(window.lucide) lucide.createIcons(); }
+function escapeHtml(str=''){
+  return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+}
+function escapeAttr(str=''){ return escapeHtml(str); }
+function formatDate(v){
+  if(!v) return '-';
+  return new Date(v).toLocaleString('pt-BR', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'});
+}
+function isHoje(v){
+  if(!v) return false;
+  const d = new Date(v);
+  const now = new Date();
+  return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
+}
+function normalizarStatus(status){
+  return String(status || 'recebido').toLowerCase();
+}
+function labelStatus(status){
+  return {recebido:'Recebido', preparando:'Preparando', saiu:'Saiu para entrega', entregue:'Entregue', cancelado:'Cancelado'}[normalizarStatus(status)] || status;
+}
+function labelCat(cat){
+  return {classicas:'Classicas', especiais:'Especiais', doces:'Doces'}[cat] || cat;
+}
+
+function mostrarErroAcesso(mensagem){
+  gate.innerHTML = `
+    <div class="gate-card">
+      <strong>Nao foi possivel abrir o admin</strong>
+      <p>${escapeHtml(mensagem)}</p>
+      <a class="btn btn-primary" href="login.html">Ir para o login</a>
+    </div>
+  `;
+}
+
+async function verificarSessao(){
+  try{
+    if(typeof supabaseClient === 'undefined'){
+      throw new Error('Configuracao do Supabase nao carregou. Confira a internet e o arquivo supabase-config.js.');
+    }
+    const { data, error } = await supabaseClient.auth.getSession();
+    if(error) throw error;
+    if(!data?.session){
+      location.href = 'login.html';
+      return;
+    }
+    gate.style.display = 'none';
+    app.style.display = 'block';
+    carregarDashboard();
+  }catch(error){
+    mostrarErroAcesso(error.message || 'Tente atualizar a pagina.');
+  }
+}
+verificarSessao();
+
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  await supabaseClient.auth.signOut();
+  location.href = 'login.html';
+});
+
+document.querySelectorAll('.view-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    const view = tab.dataset.view;
+    document.querySelectorAll('.view-tab').forEach(t => t.classList.toggle('active', t === tab));
+    document.querySelectorAll('.view-panel').forEach(panel => panel.classList.toggle('active', panel.id === `${view}Panel`));
+  });
+});
+
+['busca','filtroCat','filtroDisp'].forEach(id => {
+  document.getElementById(id).addEventListener('input', renderTabela);
+});
+['buscaPedido','filtroPedidoStatus'].forEach(id => {
+  document.getElementById(id).addEventListener('input', renderPedidos);
+});
+
+async function carregarDashboard(){
+  await Promise.all([carregarItens(), carregarPedidos()]);
+  showToast('Painel atualizado!');
+}
+
+async function carregarPedidos(){
+  ordersGrid.innerHTML = '<div class="empty">Carregando pedidos...</div>';
+  const [{ data: pedidos, error: errPedidos }, { data: itens, error: errItens }] = await Promise.all([
+    supabaseClient.from('pedidos').select('*').order('created_at', { ascending:false }),
+    supabaseClient.from('itens_pedido').select('*')
+  ]);
+
+  if(errPedidos){
+    ordersGrid.innerHTML = `<div class="empty">Erro ao carregar pedidos: ${escapeHtml(errPedidos.message)}</div>`;
+    return;
+  }
+  if(errItens){
+    ordersGrid.innerHTML = `<div class="empty">Pedidos carregados, mas os itens falharam: ${escapeHtml(errItens.message)}</div>`;
+    PEDIDOS = pedidos || [];
+    ITENS_PEDIDO = [];
+    atualizarStats();
+    return;
+  }
+
+  PEDIDOS = pedidos || [];
+  ITENS_PEDIDO = itens || [];
+  atualizarStats();
+  renderPedidos();
+}
+
+function renderPedidos(){
+  const busca = document.getElementById('buscaPedido').value.toLowerCase().trim();
+  const filtroStatus = document.getElementById('filtroPedidoStatus').value;
+
+  const filtrados = PEDIDOS.filter(p => {
+    const texto = `${p.nome_cliente || ''} ${p.telefone || ''} ${p.endereco || ''} ${p.cep || ''}`.toLowerCase();
+    const status = normalizarStatus(p.status);
+    const okBusca = !busca || texto.includes(busca);
+    const okStatus = filtroStatus === 'todos' || status === filtroStatus;
+    return okBusca && okStatus;
+  });
+
+  if(!filtrados.length){
+    ordersGrid.innerHTML = '<div class="empty">Nenhum pedido encontrado.</div>';
+    return;
+  }
+
+  ordersGrid.innerHTML = filtrados.map(p => {
+    const status = normalizarStatus(p.status);
+    const itens = ITENS_PEDIDO.filter(i => String(i.pedido_id) === String(p.id));
+    const next = proximoStatus(status);
+    return `
+      <article class="order-card">
+        <div class="order-head">
+          <div>
+            <div class="order-code">Pedido #${escapeHtml(String(p.id).slice(0, 8))}</div>
+            <div class="order-client">${escapeHtml(p.nome_cliente || 'Cliente')}</div>
+          </div>
+          <span class="badge ${status}">${labelStatus(status)}</span>
+        </div>
+        <div class="order-meta">
+          <div><b>Horario:</b> ${formatDate(p.created_at)}</div>
+          <div><b>Telefone:</b> ${escapeHtml(p.telefone || '-')}</div>
+          <div><b>Entrega:</b> ${escapeHtml(p.endereco || '-')}</div>
+          ${p.complemento ? `<div><b>Complemento:</b> ${escapeHtml(p.complemento)}</div>` : ''}
+          <div><b>Pagamento:</b> ${escapeHtml(p.forma_pagamento || '-')}</div>
+          ${p.observacoes ? `<div><b>Obs:</b> ${escapeHtml(p.observacoes)}</div>` : ''}
+        </div>
+        <div class="order-items">
+          ${itens.length ? itens.map(i => `
+            <div class="order-item">
+              <span><strong>${Number(i.quantidade || 1)}x</strong> ${escapeHtml(i.nome_pizza || 'Item')}</span>
+              <span>${fmt(Number(i.preco_unitario || 0) * Number(i.quantidade || 1))}</span>
+            </div>
+          `).join('') : '<div class="order-item"><span>Itens nao encontrados</span></div>'}
+        </div>
+        <div class="order-total"><span>Total</span><span>${fmt(p.total || 0)}</span></div>
+        <div class="order-actions">
+          ${next ? `<button class="btn-green btn-compact" onclick="alterarStatusPedido('${p.id}','${next}')">${labelStatus(next)}</button>` : ''}
+          ${status !== 'cancelado' && status !== 'entregue' ? `<button class="btn-danger btn-compact" onclick="alterarStatusPedido('${p.id}','cancelado')">Cancelar</button>` : ''}
+        </div>
+      </article>
+    `;
+  }).join('');
+  iconize();
+}
+
+function proximoStatus(status){
+  const idx = statusFluxo.indexOf(status);
+  return idx >= 0 && idx < statusFluxo.length - 1 ? statusFluxo[idx + 1] : '';
+}
+
+async function alterarStatusPedido(id, status){
+  const { error } = await supabaseClient.from('pedidos').update({ status }).eq('id', id);
+  if(error){
+    showToast('Erro ao atualizar pedido: ' + error.message);
+    return;
+  }
+  showToast('Pedido atualizado!');
+  carregarPedidos();
+}
+
+async function carregarItens(){
+  tbody.innerHTML = `<tr><td colspan="6">Carregando...</td></tr>`;
+  const { data, error } = await supabaseClient
+    .from('cardapio')
+    .select('*')
+    .order('created_at', { ascending:false });
+
+  if(error){
+    tbody.innerHTML = `<tr><td colspan="6">Erro ao carregar: ${escapeHtml(error.message)}</td></tr>`;
+    return;
+  }
+  ITENS = data || [];
+  atualizarStats();
+  renderTabela();
+}
+
+function atualizarStats(){
+  const hoje = PEDIDOS.filter(p => isHoje(p.created_at));
+  const abertos = PEDIDOS.filter(p => !['entregue','cancelado'].includes(normalizarStatus(p.status))).length;
+  const faturamento = hoje
+    .filter(p => normalizarStatus(p.status) !== 'cancelado')
+    .reduce((acc,p)=>acc + Number(p.total || 0),0);
+  document.getElementById('stPedidosHoje').textContent = hoje.length;
+  document.getElementById('stAbertos').textContent = abertos;
+  document.getElementById('stFaturamento').textContent = fmt(faturamento);
+  document.getElementById('stCardapio').textContent = ITENS.length;
+}
+
+function renderTabela(){
+  const busca = document.getElementById('busca').value.toLowerCase().trim();
+  const cat = document.getElementById('filtroCat').value;
+  const disp = document.getElementById('filtroDisp').value;
+
+  const filtrados = ITENS.filter(i => {
+    const okBusca = !busca || (i.nome || '').toLowerCase().includes(busca);
+    const okCat = cat === 'todas' || i.categoria === cat;
+    const okDisp = disp === 'todos' || String(i.disponivel) === disp;
+    return okBusca && okCat && okDisp;
+  });
+
+  empty.style.display = filtrados.length ? 'none' : 'block';
+  tbody.innerHTML = filtrados.map(i => `
+    <tr>
+      <td>
+        <div class="item">
+          <div class="thumb"><img src="${escapeAttr(i.imagem_url || DEFAULT_PIZZA_IMAGE)}" alt=""></div>
+          <div>
+            <div class="name">${escapeHtml(i.nome)}</div>
+            <div class="desc">${escapeHtml(i.descricao || 'Sem descricao')}</div>
+          </div>
+        </div>
+      </td>
+      <td>${labelCat(i.categoria)}</td>
+      <td><b>${fmt(i.preco)}</b></td>
+      <td><span class="badge ${i.disponivel ? 'on' : 'off'}">${i.disponivel ? 'Disponivel' : 'Oculto'}</span></td>
+      <td>${formatDate(i.created_at)}</td>
+      <td>
+        <div class="row-actions">
+          <button class="btn-light" onclick="editarItem('${i.id}')"><i data-lucide="pencil" class="icon"></i></button>
+          <button class="btn-danger" onclick="excluirItem('${i.id}')"><i data-lucide="trash-2" class="icon"></i></button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+  iconize();
+}
+
+function abrirModal(){
+  document.getElementById('modalTitle').textContent = 'Novo item';
+  document.getElementById('itemForm').reset();
+  document.getElementById('itemId').value = '';
+  document.getElementById('disponivel').value = 'true';
+  overlay.classList.add('show');
+}
+function fecharModal(){ overlay.classList.remove('show'); }
+
+function editarItem(id){
+  const item = ITENS.find(i => i.id === id);
+  if(!item) return;
+  document.getElementById('modalTitle').textContent = 'Editar item';
+  document.getElementById('itemId').value = item.id;
+  document.getElementById('nome').value = item.nome || '';
+  document.getElementById('categoria').value = item.categoria || 'classicas';
+  document.getElementById('preco').value = item.preco || 0;
+  document.getElementById('disponivel').value = String(item.disponivel);
+  document.getElementById('imagem_url').value = item.imagem_url || '';
+  document.getElementById('descricao').value = item.descricao || '';
+  overlay.classList.add('show');
+}
+
+document.getElementById('itemForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const saveBtn = document.getElementById('saveBtn');
+  saveBtn.disabled = true;
+  saveBtn.innerHTML = '<i data-lucide="loader-2" class="icon"></i> Salvando...';
+  iconize();
+
+  const id = document.getElementById('itemId').value;
+  const payload = {
+    nome: document.getElementById('nome').value.trim(),
+    categoria: document.getElementById('categoria').value,
+    preco: Number(document.getElementById('preco').value),
+    disponivel: document.getElementById('disponivel').value === 'true',
+    imagem_url: document.getElementById('imagem_url').value.trim() || null,
+    descricao: document.getElementById('descricao').value.trim() || null
+  };
+
+  const result = id
+    ? await supabaseClient.from('cardapio').update(payload).eq('id', id)
+    : await supabaseClient.from('cardapio').insert(payload);
+
+  saveBtn.disabled = false;
+  saveBtn.innerHTML = '<i data-lucide="save" class="icon"></i> Salvar';
+  iconize();
+
+  if(result.error){
+    showToast('Erro: ' + result.error.message);
+    return;
+  }
+  fecharModal();
+  showToast(id ? 'Item atualizado!' : 'Item cadastrado!');
+  carregarItens();
+});
+
+async function excluirItem(id){
+  const item = ITENS.find(i => i.id === id);
+  if(!confirm(`Excluir "${item?.nome || 'este item'}" do cardapio?`)) return;
+
+  const { error } = await supabaseClient.from('cardapio').delete().eq('id', id);
+  if(error){
+    showToast('Erro ao excluir: ' + error.message);
+    return;
+  }
+  showToast('Item excluido!');
+  carregarItens();
+}
+
+let t;
+function showToast(msg){
+  toast.textContent = msg;
+  toast.classList.add('show');
+  clearTimeout(t);
+  t = setTimeout(() => toast.classList.remove('show'), 2400);
+}
+</script>
+</body>
+</html>
