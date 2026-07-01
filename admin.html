@@ -308,12 +308,8 @@ function labelCat(cat){
 }
 function labelPagamento(valor){
   return {
-    pix: 'Pix',
     dinheiro: 'Dinheiro',
-    debito: 'Debito',
-    credito: 'Credito',
-    vale_refeicao: 'Vale-refeicao',
-    online: 'Online'
+    maquina_cartao: 'Maquina de cartao'
   }[valor] || valor || '-';
 }
 

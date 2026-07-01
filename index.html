@@ -294,12 +294,8 @@ footer a{color:rgba(255,248,236,0.6);}
       <div class="field">
         <label><i data-lucide="credit-card" class="icon"></i> Forma de pagamento</label>
         <div class="payment-options">
-          <label class="payment-option"><input type="radio" name="pagamento" value="pix" checked><i data-lucide="qr-code" class="icon"></i> Pix</label>
-          <label class="payment-option"><input type="radio" name="pagamento" value="dinheiro"><i data-lucide="banknote" class="icon"></i> Dinheiro</label>
-          <label class="payment-option"><input type="radio" name="pagamento" value="debito"><i data-lucide="badge-dollar-sign" class="icon"></i> Debito</label>
-          <label class="payment-option"><input type="radio" name="pagamento" value="credito"><i data-lucide="credit-card" class="icon"></i> Credito</label>
-          <label class="payment-option"><input type="radio" name="pagamento" value="vale_refeicao"><i data-lucide="receipt" class="icon"></i> Vale-refeicao</label>
-          <label class="payment-option"><input type="radio" name="pagamento" value="online"><i data-lucide="smartphone" class="icon"></i> Online</label>
+          <label class="payment-option"><input type="radio" name="pagamento" value="dinheiro" checked><i data-lucide="banknote" class="icon"></i> Dinheiro</label>
+          <label class="payment-option"><input type="radio" name="pagamento" value="maquina_cartao"><i data-lucide="credit-card" class="icon"></i> Maquina de cartao</label>
         </div>
         <div id="trocoField" class="hidden">
           <input type="text" id="troco" placeholder="Troco para quanto? Ex: R$ 100,00" inputmode="decimal">
@@ -695,7 +691,7 @@ async function buscarCep(){
 }
 
 function selectedPayment(){
-  return document.querySelector('input[name="pagamento"]:checked')?.value || 'pix';
+  return document.querySelector('input[name="pagamento"]:checked')?.value || 'dinheiro';
 }
 
 function updatePaymentDetails(){
@@ -757,15 +753,15 @@ submitBtn.addEventListener('click', async () => {
   submitBtn.innerHTML = '<i data-lucide="loader-2" class="icon"></i> Enviando...';
   lucide.createIcons();
 
-  const { data: pedido, error: errPedido } = await supabaseClient
+  const pedidoId = crypto.randomUUID();
+  const { error: errPedido } = await supabaseClient
     .from('pedidos')
     .insert({
+      id: pedidoId,
       nome_cliente: nome, telefone, endereco: enderecoCompleto, complemento, cep,
       observacoes, forma_pagamento: pagamento,
       subtotal, taxa_entrega: TAXA_ENTREGA, total, status: 'recebido'
-    })
-    .select()
-    .single();
+    });
 
   if(errPedido){
     console.error('Erro ao criar pedido:', errPedido);
@@ -778,7 +774,7 @@ submitBtn.addEventListener('click', async () => {
 
   const itens = ids.map(id => {
     const p = MENU.find(m => m.id === id);
-    return { pedido_id: pedido.id, pizza_id: p.id, nome_pizza: p.nome, quantidade: cart[id], preco_unitario: p.preco };
+    return { pedido_id: pedidoId, pizza_id: p.id, nome_pizza: p.nome, quantidade: cart[id], preco_unitario: p.preco };
   });
   const { error: errItens } = await supabaseClient.from('itens_pedido').insert(itens);
   if(errItens){

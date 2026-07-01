@@ -84,14 +84,18 @@ alter table public.pedidos
   check (
     forma_pagamento is null
     or forma_pagamento in (
-      'pix',
       'dinheiro',
+      'maquina_cartao',
+      'Dinheiro',
+      'Maquina de cartao',
+      'Máquina de cartão',
+      -- Valores antigos mantidos para nao quebrar pedidos ja cadastrados.
+      'pix',
       'debito',
       'credito',
       'vale_refeicao',
       'online',
       'Pix',
-      'Dinheiro',
       'Debito',
       'Credito',
       'Vale-refeicao',
