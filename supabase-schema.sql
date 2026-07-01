@@ -137,10 +137,19 @@ to authenticated
 using (true);
 
 -- Dados iniciais opcionais para testar o cardapio.
-insert into public.cardapio (nome, categoria, preco, disponivel, descricao)
-values
-  ('Margherita', 'classicas', 39.90, true, 'Molho de tomate, mussarela, tomate e manjericao.'),
-  ('Calabresa', 'classicas', 42.90, true, 'Calabresa fatiada, cebola, mussarela e oregano.'),
-  ('Quatro Queijos', 'especiais', 49.90, true, 'Mussarela, parmesao, gorgonzola e catupiry.'),
-  ('Chocolate', 'doces', 44.90, true, 'Chocolate cremoso, granulado e massa artesanal.')
-on conflict do nothing;
+insert into public.cardapio (nome, categoria, preco, disponivel, imagem_url, descricao)
+select *
+from (values
+  ('Margherita', 'classicas', 39.90::numeric, true, 'assets/pizza-margherita.png', 'Molho de tomate, mussarela, tomate e manjericao.'),
+  ('Calabresa', 'classicas', 42.90::numeric, true, 'assets/pizza-calabresa.png', 'Calabresa fatiada, cebola, mussarela e oregano.'),
+  ('Quatro Queijos', 'especiais', 49.90::numeric, true, 'assets/pizza-quatro-queijos.png', 'Mussarela, parmesao, gorgonzola e catupiry.'),
+  ('Chocolate', 'doces', 44.90::numeric, true, 'assets/pizza-chocolate.png', 'Chocolate cremoso, granulado e massa artesanal.')
+) as seed(nome, categoria, preco, disponivel, imagem_url, descricao)
+where not exists (
+  select 1 from public.cardapio c where lower(c.nome) = lower(seed.nome)
+);
+
+update public.cardapio set imagem_url = 'assets/pizza-margherita.png' where lower(nome) = 'margherita';
+update public.cardapio set imagem_url = 'assets/pizza-calabresa.png' where lower(nome) = 'calabresa';
+update public.cardapio set imagem_url = 'assets/pizza-quatro-queijos.png' where lower(nome) = 'quatro queijos';
+update public.cardapio set imagem_url = 'assets/pizza-chocolate.png' where lower(nome) = 'chocolate';
